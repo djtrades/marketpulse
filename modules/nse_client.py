@@ -127,9 +127,17 @@ def parse_option_chain_data(raw_data: List[Dict], spot_price: float, expiry_date
             min_loss = total_payout
             max_pain_strike = test_strike
 
-    # 4. Support and Resistance Walls (Highest & 2nd Highest OI)
-    sorted_call_strikes = sorted(ce_map.keys(), key=lambda s: ce_map[s].get("openInterest", 0) or 0, reverse=True)
-    sorted_put_strikes = sorted(pe_map.keys(), key=lambda s: pe_map[s].get("openInterest", 0) or 0, reverse=True)
+    # 4. Support and Resistance Walls (Focus on active trading corridor +/- 500 pts of ATM)
+    active_call_strikes = [s for s in ce_map if 0 <= (s - atm_strike) <= 500]
+    if not active_call_strikes:
+        active_call_strikes = [s for s in ce_map if s >= atm_strike] or list(ce_map.keys())
+
+    active_put_strikes = [s for s in pe_map if 0 <= (atm_strike - s) <= 500]
+    if not active_put_strikes:
+        active_put_strikes = [s for s in pe_map if s <= atm_strike] or list(pe_map.keys())
+
+    sorted_call_strikes = sorted(active_call_strikes, key=lambda s: ce_map[s].get("openInterest", 0) or 0, reverse=True)
+    sorted_put_strikes = sorted(active_put_strikes, key=lambda s: pe_map[s].get("openInterest", 0) or 0, reverse=True)
     
     major_res_r2 = sorted_call_strikes[0] if sorted_call_strikes else (atm_strike + 100)
     imm_res_r1 = sorted_call_strikes[1] if len(sorted_call_strikes) > 1 else (atm_strike + 50)
@@ -137,12 +145,15 @@ def parse_option_chain_data(raw_data: List[Dict], spot_price: float, expiry_date
     major_supp_s2 = sorted_put_strikes[0] if sorted_put_strikes else (atm_strike - 100)
     imm_supp_s1 = sorted_put_strikes[1] if len(sorted_put_strikes) > 1 else (atm_strike - 50)
 
-    # 5. Max Additions (Fresh writing)
-    max_call_add_strike = max(ce_map.keys(), key=lambda s: ce_map[s].get("changeinOpenInterest", 0) or 0)
-    max_put_add_strike = max(pe_map.keys(), key=lambda s: pe_map[s].get("changeinOpenInterest", 0) or 0)
+    # 5. Max Additions (Fresh writing within active corridor +/- 500 pts)
+    corridor_all = [s for s in unique_strikes if abs(s - atm_strike) <= 500]
+    if not corridor_all: corridor_all = unique_strikes
+
+    max_call_add_strike = max([s for s in corridor_all if s in ce_map], key=lambda s: ce_map[s].get("changeinOpenInterest", 0) or 0, default=atm_strike)
+    max_put_add_strike = max([s for s in corridor_all if s in pe_map], key=lambda s: pe_map[s].get("changeinOpenInterest", 0) or 0, default=atm_strike)
     
-    max_call_add_val = ce_map[max_call_add_strike].get("changeinOpenInterest", 0)
-    max_put_add_val = pe_map[max_put_add_strike].get("changeinOpenInterest", 0)
+    max_call_add_val = ce_map.get(max_call_add_strike, {}).get("changeinOpenInterest", 0)
+    max_put_add_val = pe_map.get(max_put_add_strike, {}).get("changeinOpenInterest", 0)
 
     # 6. ATM Straddle & Expected Trading Range
     atm_call_ltp = float(ce_map.get(atm_strike, {}).get("lastPrice", 0) or 0)
