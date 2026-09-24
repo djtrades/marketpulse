@@ -12,10 +12,6 @@ def render_html_dashboard(data: Dict[str, Any]) -> str:
     Renders the complete self-contained HTML file from structured scanner data.
     """
     option = data["option_chain"]
-    glob = data["global_markets"]
-    news_list = data.get("news", [])
-    inst = data.get("institutional", {})
-    pov = data["pov"]
     runtime = data["runtime"]
 
     # 1. Calculations for the Elite 5
@@ -458,75 +454,6 @@ def render_html_dashboard(data: Dict[str, Any]) -> str:
       </div>
     </section>
 
-    <!-- ==================== SECTION 5: COMPACT MACRO CONTEXT DRAWER ==================== -->
-    <details class="group bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden transition">
-      <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-800/40 select-none">
-        <div class="flex items-center gap-2 text-xs font-bold text-slate-300">
-          <svg class="w-4 h-4 text-slate-400 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-          <span>Macro & Global Backdrop (Gift Nifty, VIX, Crude, FII/DII Flows)</span>
-        </div>
-        <span class="text-[10px] text-slate-500 font-mono">Click to Expand / Collapse</span>
-      </summary>
-
-      <div class="p-4 pt-0 border-t border-slate-800/60 mt-3 space-y-4">
-        <!-- Quick Ticker Strip -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
-            <div class="text-[10px] text-slate-400 font-semibold flex justify-between">
-              <span>GIFT NIFTY</span>
-              <span class="text-emerald-400 font-mono text-[9px] font-bold">LIVE FUTURES</span>
-            </div>
-            <div class="text-sm font-bold text-white font-mono mt-0.5">{glob['gift_nifty']['estimated_price']:,}</div>
-            <div class="text-[10px] font-mono text-{glob['gift_nifty']['gap_color']}-400 font-semibold">
-              {glob['gift_nifty']['gap_points']:+0.1f} pts ({glob['gift_nifty']['gap_pct']:+0.2f}%)
-            </div>
-          </div>
-
-          <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
-            <div class="text-[10px] text-slate-400 font-semibold">INDIA VIX</div>
-            <div class="text-sm font-bold text-slate-200 font-mono mt-0.5">{glob['macro']['vix']['price']}</div>
-            <div class="text-[10px] font-mono text-slate-400">{glob['macro']['vix']['pct_change']:+0.2f}%</div>
-          </div>
-
-          <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
-            <div class="text-[10px] text-slate-400 font-semibold">BRENT CRUDE</div>
-            <div class="text-sm font-bold text-slate-200 font-mono mt-0.5">${glob['macro']['brent']['price']}/bbl</div>
-            <div class="text-[10px] font-mono text-slate-400">{glob['macro']['brent']['pct_change']:+0.2f}%</div>
-          </div>
-
-          <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
-            <div class="text-[10px] text-slate-400 font-semibold">US 10Y YIELD</div>
-            <div class="text-sm font-bold text-slate-200 font-mono mt-0.5">{glob['macro']['us10y']['price']}%</div>
-            <div class="text-[10px] font-mono text-slate-400">{glob['macro']['us10y']['pct_change']:+0.2f}%</div>
-          </div>
-
-          <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
-            <div class="text-[10px] text-slate-400 font-semibold">DOLLAR DXY</div>
-            <div class="text-sm font-bold text-slate-200 font-mono mt-0.5">{glob['macro']['dxy']['price']}</div>
-            <div class="text-[10px] font-mono text-slate-400">{glob['macro']['dxy']['pct_change']:+0.2f}%</div>
-          </div>
-
-          <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
-            <div class="text-[10px] text-slate-400 font-semibold">USD / INR</div>
-            <div class="text-sm font-bold text-slate-200 font-mono mt-0.5">₹{glob['macro']['usdinr']['price']}</div>
-            <div class="text-[10px] font-mono text-slate-400">{glob['macro']['usdinr']['pct_change']:+0.2f}%</div>
-          </div>
-        </div>
-
-        <!-- Institutional Flows Strip -->
-        <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800 flex flex-wrap items-center justify-between text-xs gap-3">
-          <div class="flex items-center gap-4">
-            <span class="text-slate-400">Institutional Cash Flow:</span>
-            <span>FII: <strong class="text-rose-400 font-mono">{inst.get('fii_net_cr', 0)} Cr</strong></span>
-            <span>DII: <strong class="text-emerald-400 font-mono">+{inst.get('dii_net_cr', 0)} Cr</strong></span>
-            <span>Net: <strong class="text-emerald-400 font-mono">{inst.get('combined_net_cr', 0):+0.1f} Cr</strong></span>
-          </div>
-          <div class="text-slate-400 font-mono">
-            FII Long Futures: <strong class="text-white">{inst.get('fii_long_pct', 50)}%</strong>
-          </div>
-        </div>
-      </div>
-    </details>
 
     <!-- FOOTER -->
     <footer class="text-center text-xs text-slate-500 py-3">
