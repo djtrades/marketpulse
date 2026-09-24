@@ -18,10 +18,8 @@ def generate_morning_pov(
     gap_pts = global_data["gift_nifty"]["gap_points"]
     pcr = option_data["total_pcr"]
     max_pain = option_data["max_pain"]
-    r2_call_wall = option_data["r2_major_call_wall"]
-    r1_imm_res = option_data["r1_imm_res"]
-    s2_put_wall = option_data["s2_major_put_wall"]
-    s1_imm_supp = option_data["s1_imm_supp"]
+    tot_put_chg = option_data.get("tot_put_chg_lakhs", 0)
+    tot_call_chg = option_data.get("tot_call_chg_lakhs", 0)
     
     # 1. Scoring Algorithmic Bias (-100 to +100)
     score = 0
@@ -76,42 +74,39 @@ def generate_morning_pov(
     expected_day_high = round(spot + straddle)
     
     # Pivot point calculation
-    pivot_level = round((r1_imm_res + s1_imm_supp + spot) / 3.0)
+    pivot_level = round((expected_day_high + expected_day_low + spot) / 3.0)
 
     # 4. Scenario-Based Tactical Battleplan
     if gap_pts >= 30:
         scenario_1_title = f"SCENARIO 1: Gap-Up Open (> {expected_open_low})"
         scenario_1_desc = (
-            f"Do not blindly chase long breakout trades at the opening bell. The {r2_call_wall} strike "
-            f"houses heavy Call OI concentration ({option_data['r2_call_oi_lakhs']}L shares) acting as a ceiling. "
-            f"Wait for the initial 15-minute price discovery. A healthy pullback towards {s1_imm_supp} - {pivot_level} "
-            f"supported by Put writing offers favorable risk-reward long entries targeting {r1_imm_res}."
+            f"Avoid chasing aggressive longs directly at the opening bell. Wait for the initial 15-minute price discovery. "
+            f"A healthy pullback towards {pivot_level} with Put writing additions offers favorable risk-reward entries "
+            f"targeting {expected_day_high}."
         )
     elif gap_pts <= -30:
         scenario_1_title = f"SCENARIO 1: Gap-Down Open (< {expected_open_high})"
         scenario_1_desc = (
-            f"Expect initial panic selling towards the {s2_put_wall} Put Wall ({option_data['s2_put_oi_lakhs']}L shares). "
-            f"Watch for absorption near {s2_put_wall}. If PCR is oversold ({pcr}), look for quick mean-reversion "
-            f"pullbacks towards {pivot_level}. Avoid fresh shorting directly into major support."
+            f"Watch for absorption near {expected_day_low}. If PCR is oversold ({pcr}), look for quick mean-reversion "
+            f"pullbacks towards {pivot_level}. Avoid initiating fresh short trades directly near the lower range boundary."
         )
     else:
         scenario_1_title = "SCENARIO 1: Flat / Neutral Opening"
         scenario_1_desc = (
-            f"Rangebound morning session expected between {s1_imm_supp} and {r1_imm_res}. "
-            f"Ideal for non-directional option sellers (Short Straddles / Iron Condors) aiming to capitalize on early theta decay."
+            f"Rangebound morning session expected between {expected_day_low} and {expected_day_high}. "
+            f"Ideal for non-directional option sellers aiming to capitalize on steady theta decay around Pivot {pivot_level}."
         )
 
-    scenario_2_title = f"SCENARIO 2: Resistance Test at {r2_call_wall} (Call Wall)"
+    scenario_2_title = f"SCENARIO 2: Resistance Test near {expected_day_high}"
     scenario_2_desc = (
-        f"If Nifty crosses {r1_imm_res} and sustains above {r2_call_wall} for over 30 minutes, "
-        f"expect rapid short-covering panic from trapped call sellers, unleashing momentum towards {r2_call_wall + 100}. "
-        f"Conversely, sharp price rejection at {r2_call_wall} triggers quick mean-reversion scalp shorts back to {pivot_level}."
+        f"If Nifty crosses above {pivot_level} and sustains near {expected_day_high} for over 30 minutes, "
+        f"expect short-covering from Call writers. If price faces sharp rejection, look for quick mean-reversion pullbacks back towards {max_pain}."
     )
 
-    scenario_3_title = f"SCENARIO 3: Bearish Invalidation Level at {s2_put_wall} (Put Wall)"
+    scenario_3_title = f"SCENARIO 3: Support Defense near {expected_day_low}"
     scenario_3_desc = (
-        f"The intraday bullish/neutral thesis is completely invalidated if Nifty breaks and closes below the {s2_put_wall} support floor. "
-        f"A decisive breach will initiate aggressive long unwinding, exposing lower targets towards {s2_put_wall - 100}."
+        f"The intraday bullish/neutral thesis is invalidated if Nifty breaks decisively below {expected_day_low}. "
+        f"A sustained breakdown below this level triggers fresh long unwinding with accelerated downside risk."
     )
 
     return {
@@ -122,12 +117,10 @@ def generate_morning_pov(
         "expected_open_range": f"{expected_open_low:,} – {expected_open_high:,}",
         "expected_day_range": f"{expected_day_low:,} – {expected_day_high:,}",
         "pivot_level": pivot_level,
-        "r2_call_wall": r2_call_wall,
-        "r1_imm_res": r1_imm_res,
-        "s1_imm_supp": s1_imm_supp,
-        "s2_put_wall": s2_put_wall,
         "max_pain": max_pain,
         "straddle_pts": straddle,
+        "tot_put_chg_lakhs": tot_put_chg,
+        "tot_call_chg_lakhs": tot_call_chg,
         "scenario_1_title": scenario_1_title,
         "scenario_1_desc": scenario_1_desc,
         "scenario_2_title": scenario_2_title,

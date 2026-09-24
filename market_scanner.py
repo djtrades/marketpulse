@@ -36,8 +36,8 @@ def main():
     print("⏳ [1/5] Fetching NSE Nifty Weekly Expiry Option Chain...")
     option_data = fetch_nifty_option_chain()
     print(f"   -> Spot: {option_data['spot_price']:,} | Expiry: {option_data['expiry_date']}")
-    print(f"   -> PCR: {option_data['total_pcr']} | Max Pain: {option_data['max_pain']}")
-    print(f"   -> Call Wall (R2): {option_data['r2_major_call_wall']} | Put Wall (S2): {option_data['s2_major_put_wall']}")
+    print(f"   -> PCR: {option_data['total_pcr']} | Max Pain: {option_data['max_pain']:,}")
+    print(f"   -> Total Put OI Chg: {'+' if option_data['tot_put_chg_lakhs'] >= 0 else ''}{option_data['tot_put_chg_lakhs']}L | Call OI Chg: {'+' if option_data['tot_call_chg_lakhs'] >= 0 else ''}{option_data['tot_call_chg_lakhs']}L")
 
     # 2. Fetch Global Markets & Macro Cues
     print("\n⏳ [2/5] Fetching Global Markets & Macro Indicators...")
@@ -62,8 +62,7 @@ def main():
     print("\n⏳ [5/5] Synthesizing Morning Point-of-View & Tactical Battleplan...")
     pov_data = generate_morning_pov(option_data, global_data, inst_data)
     print(f"   -> Stance: {pov_data['stance']} (Confidence: {pov_data['confidence_pct']}%)")
-    print(f"   -> Expected Open: {pov_data['expected_open_range']} | Expected Range: {pov_data['expected_day_range']}")
-    print(f"   -> Key Levels: S2={pov_data['s2_put_wall']}, S1={pov_data['s1_imm_supp']}, Pivot={pov_data['pivot_level']}, R1={pov_data['r1_imm_res']}, R2={pov_data['r2_call_wall']}")
+    print(f"   -> Pivot: {pov_data['pivot_level']:,} | Max Pain: {pov_data['max_pain']:,}")
 
     # Render HTML Dashboard
     payload = {

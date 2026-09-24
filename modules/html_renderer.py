@@ -87,11 +87,10 @@ def render_html_dashboard(data: Dict[str, Any]) -> str:
         f"🌅 NIFTY MORNING PULSE ({runtime['date']})\\n"
         f"• Stance: {pov['stance']}\\n"
         f"• Expected Open: {pov['expected_open_range']} (Gift Nifty: {glob['gift_nifty']['gap_points']:+0.1f} pts)\\n"
-        f"• Range: {pov['expected_day_range']} | Max Pain: {pov['max_pain']}\\n"
-        f"• Support: {pov['s1_imm_supp']} / {pov['s2_put_wall']} (Put Wall)\\n"
-        f"• Resistance: {pov['r1_imm_res']} / {pov['r2_call_wall']} (Call Wall)\\n"
-        f"• PCR: {option['total_pcr']} ({option['pcr_stance']})\\n"
-        f"• FII: {inst['fii_net_cr']} Cr | DII: +{inst['dii_net_cr']} Cr\\n"
+        f"• Range: {pov['expected_day_range']} | Pivot: {pov['pivot_level']:,}\\n"
+        f"• PCR: {option['total_pcr']} | Max Pain: {option['max_pain']:,}\\n"
+        f"• Put OI Chg: {'+' if option['tot_put_chg_lakhs'] >= 0 else ''}{option['tot_put_chg_lakhs']}L | Call OI Chg: {'+' if option['tot_call_chg_lakhs'] >= 0 else ''}{option['tot_call_chg_lakhs']}L\\n"
+        f"• FII Cash: {inst['fii_net_cr']} Cr | DII: +{inst['dii_net_cr']} Cr\\n"
         f"Check full dashboard: "
     )
 
@@ -273,15 +272,15 @@ def render_html_dashboard(data: Dict[str, Any]) -> str:
         </div>
 
         <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800">
-          <div class="text-xs text-slate-400 font-medium">Major Resistance (Call Wall)</div>
-          <div class="text-lg sm:text-xl font-extrabold text-rose-400 font-mono mt-1">{pov['r2_call_wall']}</div>
-          <div class="text-[11px] text-slate-400 mt-0.5">Immediate: {pov['r1_imm_res']} (R1)</div>
+          <div class="text-xs text-slate-400 font-medium">Intraday Pivot Level</div>
+          <div class="text-lg sm:text-xl font-extrabold text-indigo-300 font-mono mt-1">{pov['pivot_level']:,}</div>
+          <div class="text-[11px] text-slate-400 mt-0.5">Equilibrium Center</div>
         </div>
 
         <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800">
-          <div class="text-xs text-slate-400 font-medium">Major Support (Put Wall)</div>
-          <div class="text-lg sm:text-xl font-extrabold text-emerald-400 font-mono mt-1">{pov['s2_put_wall']}</div>
-          <div class="text-[11px] text-slate-400 mt-0.5">Immediate: {pov['s1_imm_supp']} (S1)</div>
+          <div class="text-xs text-slate-400 font-medium">Expiry Max Pain</div>
+          <div class="text-lg sm:text-xl font-extrabold text-amber-400 font-mono mt-1">{option['max_pain']:,}</div>
+          <div class="text-[11px] text-slate-400 mt-0.5">Gravitational Expiry Center</div>
         </div>
       </div>
 
@@ -329,42 +328,30 @@ def render_html_dashboard(data: Dict[str, Any]) -> str:
         </div>
       </div>
 
-      <!-- Derivatives Stats Strip -->
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 my-5">
-        <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800">
-          <div class="text-[11px] text-slate-400 font-medium">Total PCR</div>
-          <div class="text-lg font-bold text-{option['pcr_badge_color']}-400 font-mono mt-0.5">{option['total_pcr']}</div>
-          <div class="text-[10px] text-slate-400">{option['pcr_stance']}</div>
+      <!-- Derivatives Stats Strip (4 Core Metrics) -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5 my-5">
+        <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800">
+          <div class="text-xs text-slate-400 font-medium">Total PCR</div>
+          <div class="text-xl font-bold text-{option['pcr_badge_color']}-400 font-mono mt-0.5">{option['total_pcr']}</div>
+          <div class="text-[11px] text-slate-400">{option['pcr_stance']}</div>
         </div>
 
-        <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800">
-          <div class="text-[11px] text-slate-400 font-medium">Max Pain Strike</div>
-          <div class="text-lg font-bold text-amber-400 font-mono mt-0.5">{option['max_pain']}</div>
-          <div class="text-[10px] text-slate-400">Expiry Gravity Pin Center</div>
+        <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800">
+          <div class="text-xs text-slate-400 font-medium">Max Pain Strike</div>
+          <div class="text-xl font-bold text-amber-400 font-mono mt-0.5">{option['max_pain']:,}</div>
+          <div class="text-[11px] text-slate-400">Expiry Gravity Pin Center</div>
         </div>
 
-        <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800">
-          <div class="text-[11px] text-slate-400 font-medium">Major Call Wall (R2)</div>
-          <div class="text-lg font-bold text-rose-400 font-mono mt-0.5">{option['r2_major_call_wall']}</div>
-          <div class="text-[10px] text-slate-400">{option['r2_call_oi_lakhs']}L Call OI</div>
+        <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800">
+          <div class="text-xs text-slate-400 font-medium">Total Put OI Change</div>
+          <div class="text-xl font-bold text-emerald-400 font-mono mt-0.5">{'+' if option['tot_put_chg_lakhs'] >= 0 else ''}{option['tot_put_chg_lakhs']}L</div>
+          <div class="text-[11px] text-slate-400">{'Put Writing (Support Addition)' if option['tot_put_chg_lakhs'] >= 0 else 'Put Unwinding (Liquidation)'}</div>
         </div>
 
-        <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800">
-          <div class="text-[11px] text-slate-400 font-medium">Major Put Wall (S2)</div>
-          <div class="text-lg font-bold text-emerald-400 font-mono mt-0.5">{option['s2_major_put_wall']}</div>
-          <div class="text-[10px] text-slate-400">{option['s2_put_oi_lakhs']}L Put OI</div>
-        </div>
-
-        <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800">
-          <div class="text-[11px] text-slate-400 font-medium">Max Put Addition</div>
-          <div class="text-lg font-bold text-emerald-400 font-mono mt-0.5">+{option['max_put_add_lakhs']}L</div>
-          <div class="text-[10px] text-slate-400">@ {option['max_put_add_strike']} Strike</div>
-        </div>
-
-        <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800">
-          <div class="text-[11px] text-slate-400 font-medium">Max Call Addition</div>
-          <div class="text-lg font-bold text-rose-400 font-mono mt-0.5">+{option['max_call_add_lakhs']}L</div>
-          <div class="text-[10px] text-slate-400">@ {option['max_call_add_strike']} Strike</div>
+        <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800">
+          <div class="text-xs text-slate-400 font-medium">Total Call OI Change</div>
+          <div class="text-xl font-bold text-rose-400 font-mono mt-0.5">{'+' if option['tot_call_chg_lakhs'] >= 0 else ''}{option['tot_call_chg_lakhs']}L</div>
+          <div class="text-[11px] text-slate-400">{'Call Writing (Resistance Addition)' if option['tot_call_chg_lakhs'] >= 0 else 'Call Unwinding (Short Covering)'}</div>
         </div>
       </div>
 
@@ -383,7 +370,7 @@ def render_html_dashboard(data: Dict[str, Any]) -> str:
         </div>
 
         <div class="mt-4 pt-3 border-t border-slate-800 text-xs text-slate-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <span>💡 <strong>Derivatives Reading:</strong> The {option['r2_major_call_wall']} Call strike serves as the primary resistance ceiling, while {option['s2_major_put_wall']} Put strike provides base cushion. Max Pain at {option['max_pain']}.</span>
+          <span>💡 <strong>Derivatives Reading:</strong> Total Put OI change is {'+' if option['tot_put_chg_lakhs'] >= 0 else ''}{option['tot_put_chg_lakhs']}L vs Total Call OI change of {'+' if option['tot_call_chg_lakhs'] >= 0 else ''}{option['tot_call_chg_lakhs']}L across the active contract. Expiry Max Pain centered at {option['max_pain']:,}.</span>
           <span class="font-mono text-indigo-400 text-[11px]">Source: NSE India Live Derivatives Book</span>
         </div>
       </div>
