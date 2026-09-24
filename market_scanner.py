@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Nifty Pre-Market Pulse - Master Orchestrator & Scanner
-Runs daily around 07:50 - 08:00 AM IST.
-Collects data, runs derivative analysis, compiles the morning POV, and generates index.html.
+Nifty Options Pulse - Master Orchestrator & Scanner
+Runs daily at 4:00 PM IST (Post-Market EOD Settled Options & Derivatives Radar).
+Collects data, runs derivative analysis, and generates index.html.
 """
 
 import os
@@ -28,7 +28,7 @@ def main():
     time_str = now_ist.strftime("%H:%M:%S")
 
     print(f"\n==================================================")
-    print(f"  NIFTY PRE-MARKET SCANNER (8:00 AM IST RUNNER)   ")
+    print(f"  NIFTY OPTIONS SCANNER (4:00 PM IST DAILY RUNNER)  ")
     print(f"  Session Date: {date_str} | Time: {time_str} IST")
     print(f"==================================================\n")
 

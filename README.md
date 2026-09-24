@@ -1,6 +1,6 @@
-# 🌅 Nifty Pre-Market Pulse & NSE Expiry Radar (8:00 AM IST)
+# 🎯 Nifty 50 • Elite 5 Options Radar (4:00 PM IST Daily)
 
-An automated, shareable pre-market intelligence dashboard designed for Indian market traders and investors. Every trading day at **07:50 AM IST**, an automated GitHub Action triggers, scans overnight global markets, parses the live NSE weekly option chain, calculates derivatives levels (PCR, Max Pain, Call/Put Walls), and publishes a responsive HTML dashboard accessible from any mobile or desktop browser.
+An automated, shareable post-market options intelligence dashboard designed for Indian market traders. Every day at **4:00 PM IST** (10:30 UTC), right after market close and final settlement of NSE Open Interest numbers, an automated GitHub Action triggers, parses the live NSE weekly option chain, calculates the **Elite 5 Core Options Metrics** (The Boundary, Call Fortress, Put Fortress, Total PCR, and Max Pain), and publishes a responsive HTML dashboard accessible from any mobile or desktop browser.
 
 ---
 
@@ -80,7 +80,7 @@ git push -u origin main
 
 ### Step 4: Run Your First Build
 1. Click the **Actions** tab at the top of your GitHub repository.
-2. In the left sidebar, click **"Daily 8:00 AM IST Nifty Pre-Market Pulse"**.
+2. In the left sidebar, click **"Daily 4:00 PM IST Nifty Options Pulse"**.
 3. Click the **"Run workflow"** button on the right, select branch `main`, and click the green button.
 4. The workflow will run in ~30 seconds, fetch the latest market numbers, and deploy.
 5. Your public dashboard will be live at:
@@ -95,9 +95,9 @@ You can bookmark this URL on your phone or send it to anyone!
 The workflow `.github/workflows/daily_pulse.yml` is scheduled using GitHub cron:
 ```yaml
 schedule:
-  - cron: '20 2 * * 1-5' # 02:20 UTC = 07:50 AM IST (Monday to Friday)
+  - cron: '30 10 * * *' # 10:30 UTC = 04:00 PM IST (Everyday)
 ```
-By the time you wake up and check your phone at 08:00 AM IST, the dashboard will already be updated with fresh overnight data.
+Every day at 04:00 PM IST, the dashboard automatically runs, parses the settled post-market derivatives data from NSE, and publishes the fresh analysis to GitHub Pages.
 
 ---
 

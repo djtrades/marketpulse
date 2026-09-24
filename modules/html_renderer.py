@@ -124,7 +124,7 @@ def render_html_dashboard(data: Dict[str, Any]) -> str:
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nifty 50 • Elite 5 Options Morning Radar ({runtime['date']})</title>
+  <title>Nifty 50 • Elite 5 Options Radar ({runtime['date']})</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -457,7 +457,7 @@ def render_html_dashboard(data: Dict[str, Any]) -> str:
 
     <!-- FOOTER -->
     <footer class="text-center text-xs text-slate-500 py-3">
-      Nifty 50 Options Morning Radar • Automated Daily Runner at 07:50 AM IST • NSE Live Derivatives Engine
+      Nifty 50 Options Radar • Automated Daily Runner at 4:00 PM IST • NSE Live Derivatives Engine
     </footer>
 
   </div>

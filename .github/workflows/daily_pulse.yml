@@ -1,9 +1,9 @@
-name: Daily 8:00 AM IST Nifty Pre-Market Pulse
+name: Daily 4:00 PM IST Nifty Options Pulse
 
 on:
   schedule:
-    # 02:20 UTC is 07:50 AM IST (Runs Mon-Fri)
-    - cron: '20 2 * * 1-5'
+    # 10:30 UTC is 04:00 PM IST (Runs everyday)
+    - cron: '30 10 * * *'
   workflow_dispatch: # Allows manual 1-click trigger anytime from GitHub web UI
   push:
     branches:
@@ -40,7 +40,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Execute Morning Market Scanner
+      - name: Execute Nifty Options Scanner
         run: |
           python market_scanner.py
 
