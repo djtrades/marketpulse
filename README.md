@@ -67,7 +67,7 @@ git commit -m "Initial commit: Nifty 8:00 AM Pre-Market Pulse Dashboard"
 
 # Link to your new GitHub repository (replace with your repo URL)
 git branch -M main
-git remote add origin https://github.com/<YOUR-GITHUB-USERNAME>/nifty-morning-pulse.git
+git remote add origin https://github.com/djtrades/marketpulse.git
 git push -u origin main
 ```
 
@@ -84,7 +84,7 @@ git push -u origin main
 3. Click the **"Run workflow"** button on the right, select branch `main`, and click the green button.
 4. The workflow will run in ~30 seconds, fetch the latest market numbers, and deploy.
 5. Your public dashboard will be live at:
-   `https://<YOUR-GITHUB-USERNAME>.github.io/nifty-morning-pulse/`
+   `https://djtrades.github.io/marketpulse/`
 
 You can bookmark this URL on your phone or send it to anyone!
 
