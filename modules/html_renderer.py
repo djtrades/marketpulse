@@ -164,7 +164,9 @@ def render_html_dashboard(data: Dict[str, Any]) -> str:
         <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800/80">
           <div class="text-[11px] font-semibold text-slate-400 flex items-center justify-between">
             <span>GIFT NIFTY</span>
-            <span class="text-emerald-400 font-mono text-[10px]">CUE</span>
+            <span class="{'text-emerald-400 font-bold' if glob['gift_nifty'].get('is_live') else 'text-amber-400 font-semibold'} font-mono text-[10px] flex items-center gap-1">
+              {'<span class=\"w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block\"></span> LIVE' if glob['gift_nifty'].get('is_live') else 'ESTIMATE'}
+            </span>
           </div>
           <div class="text-base font-bold text-white font-mono mt-0.5">{glob['gift_nifty']['estimated_price']:,}</div>
           <div class="text-[11px] font-mono text-{glob['gift_nifty']['gap_color']}-400 font-semibold">
