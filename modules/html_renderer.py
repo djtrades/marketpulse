@@ -241,7 +241,7 @@ def render_html_dashboard(data: Dict[str, Any]) -> str:
         </div>
 
         <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-400 leading-relaxed">
-          <span class="text-slate-300 font-medium">Resistance Wall:</span> Highest fresh Call writing yesterday. Rallies toward this strike face heavy institutional selling.
+          <span class="text-slate-300 font-medium">Resistance Wall:</span> Highest fresh Call writing. Rallies toward this strike face heavy institutional selling.
         </div>
       </div>
 
@@ -371,7 +371,7 @@ def render_html_dashboard(data: Dict[str, Any]) -> str:
         </div>
 
         <p class="text-[11px] text-slate-400 text-center pt-1">
-          Institutional writers injected <strong>{abs(net_force)}L more {'put' if net_force >= 0 else 'call'} contracts</strong> yesterday. {'Downside moves are backed by institutional writing support.' if net_force >= 0 else 'Upside moves face aggressive overhead writing resistance.'}
+          Institutional writers injected <strong>{abs(net_force)}L more {'put' if net_force >= 0 else 'call'} contracts</strong>. {'Downside moves are backed by institutional writing support.' if net_force >= 0 else 'Upside moves face aggressive overhead writing resistance.'}
         </p>
       </div>
     </section>
