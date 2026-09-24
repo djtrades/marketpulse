@@ -126,6 +126,54 @@ def render_html_dashboard(data: Dict[str, Any]) -> str:
 
   <div class="max-w-7xl mx-auto space-y-6">
 
+    <!-- ==================== REAL-TIME STREAMING TICKER TAPE ==================== -->
+    <div class="tradingview-widget-container rounded-xl overflow-hidden border border-slate-800 shadow-xl bg-slate-900/80">
+      <div class="tradingview-widget-container__widget"></div>
+      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+      {{
+        "symbols": [
+          {{
+            "proName": "NSEIX:NIFTY1!",
+            "title": "GIFT NIFTY"
+          }},
+          {{
+            "proName": "INDEX:NIFTY",
+            "title": "NIFTY 50"
+          }},
+          {{
+            "proName": "TVC:NI225",
+            "title": "NIKKEI 225"
+          }},
+          {{
+            "proName": "HSI:HSI",
+            "title": "HANG SENG"
+          }},
+          {{
+            "proName": "FOREXCOM:SPXUSD",
+            "title": "S&P 500"
+          }},
+          {{
+            "proName": "FOREXCOM:NSXUSD",
+            "title": "NASDAQ"
+          }},
+          {{
+            "proName": "TVC:UKOIL",
+            "title": "BRENT CRUDE"
+          }},
+          {{
+            "proName": "FX_IDC:USDINR",
+            "title": "USD/INR"
+          }}
+        ],
+        "showSymbolLogo": false,
+        "isTransparent": true,
+        "displayMode": "adaptive",
+        "colorTheme": "dark",
+        "locale": "en"
+      }}
+      </script>
+    </div>
+
     <!-- ==================== HEADER & TOP TICKER ==================== -->
     <header class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl backdrop-blur-md">
       <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-5">
@@ -164,9 +212,7 @@ def render_html_dashboard(data: Dict[str, Any]) -> str:
         <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800/80">
           <div class="text-[11px] font-semibold text-slate-400 flex items-center justify-between">
             <span>GIFT NIFTY</span>
-            <span class="{'text-emerald-400 font-bold' if glob['gift_nifty'].get('is_live') else 'text-amber-400 font-semibold'} font-mono text-[10px] flex items-center gap-1">
-              {'<span class=\"w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block\"></span> LIVE' if glob['gift_nifty'].get('is_live') else 'ESTIMATE'}
-            </span>
+            <span class="text-indigo-400 font-mono text-[10px] font-bold bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">SNAPSHOT</span>
           </div>
           <div class="text-base font-bold text-white font-mono mt-0.5">{glob['gift_nifty']['estimated_price']:,}</div>
           <div class="text-[11px] font-mono text-{glob['gift_nifty']['gap_color']}-400 font-semibold">
