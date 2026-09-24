@@ -1,7 +1,8 @@
 """
-HTML Dashboard Renderer
-Generates a responsive, standalone HTML dashboard with Tailwind CSS,
-interactive strike ladder OI charts, and shareable morning briefing copy generator.
+HTML Dashboard Renderer - Elite 5 Options Morning Radar
+Renders an institutional-grade, responsive HTML dashboard focused on
+the 5 non-negotiable options metrics, institutional ΔOI force, corridor ladder,
+and tactical execution playbook.
 """
 
 from typing import Dict, Any
@@ -12,108 +13,126 @@ def render_html_dashboard(data: Dict[str, Any]) -> str:
     """
     option = data["option_chain"]
     glob = data["global_markets"]
-    news_list = data["news"]
-    inst = data["institutional"]
+    news_list = data.get("news", [])
+    inst = data.get("institutional", {})
     pov = data["pov"]
     runtime = data["runtime"]
 
-    # Generate Strike Ladder HTML rows
-    strike_rows_html = ""
-    for row in option["strike_ladder"]:
-        is_atm = row["is_atm"]
-        atm_class = "bg-amber-950/20 border border-amber-500/30" if is_atm else ""
-        badge = " <span class='text-[10px] text-amber-400 font-bold ml-1'>ATM</span>" if is_atm else ""
-        
-        strike_rows_html += f"""
-        <div class="grid grid-cols-12 items-center gap-2 py-1 px-1.5 rounded-lg {atm_class}">
-          <!-- Call OI Bar & Val -->
-          <div class="col-span-5 flex justify-end items-center gap-2">
-            <span class="text-slate-400 text-[10px] font-mono">{row['call_oi_lakhs']}L</span>
-            <div class="w-24 sm:w-36 bg-slate-800/80 h-3.5 rounded-l overflow-hidden flex justify-end">
-              <div class="bg-rose-500 h-full" style="width: {row['call_bar_pct']}%;"></div>
-            </div>
-          </div>
-          
-          <!-- Strike Price -->
-          <div class="col-span-2 text-center font-bold text-slate-200 bg-slate-900/90 py-0.5 rounded border border-slate-800 font-mono text-xs">
-            {row['strike']}{badge}
-          </div>
-          
-          <!-- Put OI Bar & Val -->
-          <div class="col-span-5 flex items-center gap-2">
-            <div class="w-24 sm:w-36 bg-slate-800/80 h-3.5 rounded-r overflow-hidden">
-              <div class="bg-emerald-500 h-full" style="width: {row['put_bar_pct']}%;"></div>
-            </div>
-            <span class="text-slate-400 text-[10px] font-mono">{row['put_oi_lakhs']}L</span>
-          </div>
-        </div>
-        """
+    # 1. Calculations for the Elite 5
+    spot = option["spot_price"]
+    atm = option["atm_strike"]
+    straddle = option.get("straddle_price", 150.0)
+    straddle_pct = round((straddle / spot * 100.0), 2) if spot else 0.65
 
-    # Generate News HTML cards
-    news_cards_html = ""
-    for n in news_list:
-        news_cards_html += f"""
-        <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 flex flex-col md:flex-row md:items-start justify-between gap-3">
-          <div class="space-y-1.5 flex-1">
-            <div class="flex items-center gap-2">
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold border {n['badge_class']}">{n['sentiment_tag']}</span>
-              <span class="text-[11px] text-slate-500 font-mono">{n['source']}</span>
-            </div>
-            <h3 class="text-xs md:text-sm font-bold text-white leading-snug">{n['title']}</h3>
-            <p class="text-xs text-slate-400 leading-relaxed">{n['description']}</p>
-          </div>
-          <div class="md:w-72 bg-slate-900/90 p-2.5 rounded-lg border border-slate-800 text-xs shrink-0">
-            <span class="text-[10px] font-bold uppercase text-indigo-400 tracking-wider">Direct Nifty Impact:</span>
-            <p class="text-slate-300 text-xs mt-0.5 font-medium">{n['nifty_impact']}</p>
-          </div>
-        </div>
-        """
+    exp_low = option.get("expected_range_low", round(spot - straddle))
+    exp_high = option.get("expected_range_high", round(spot + straddle))
 
-    # Generate Sector Watchlist HTML
-    sector_cards_html = ""
-    for s in inst["sector_watchlist"]:
-        sector_cards_html += f"""
-        <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800">
-          <div class="flex items-center justify-between mb-1">
-            <span class="font-bold text-xs text-white">{s['name']}</span>
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold border {s['badge_class']}">{s['status']}</span>
-          </div>
-          <p class="text-[11px] text-slate-400">{s['reason']}</p>
-        </div>
-        """
+    max_call_strike = option.get("max_call_add_strike", atm + 150)
+    max_call_lakhs = option.get("max_call_add_lakhs", 1.5)
+    max_put_strike = option.get("max_put_add_strike", atm - 150)
+    max_put_lakhs = option.get("max_put_add_lakhs", 1.4)
 
-    # Generate Quick Copy Text for WhatsApp/Telegram
-    copy_text = (
-        f"🌅 NIFTY MORNING PULSE ({runtime['date']})\\n"
-        f"• Stance: {pov['stance']}\\n"
-        f"• Expected Open: {pov['expected_open_range']} (Gift Nifty: {glob['gift_nifty']['gap_points']:+0.1f} pts)\\n"
-        f"• Range: {pov['expected_day_range']} | Pivot: {pov['pivot_level']:,}\\n"
-        f"• PCR: {option['total_pcr']} | Max Pain: {option['max_pain']:,}\\n"
-        f"• Put OI Chg: {'+' if option['tot_put_chg_lakhs'] >= 0 else ''}{option['tot_put_chg_lakhs']}L | Call OI Chg: {'+' if option['tot_call_chg_lakhs'] >= 0 else ''}{option['tot_call_chg_lakhs']}L\\n"
-        f"• FII Cash: {inst['fii_net_cr']} Cr | DII: +{inst['dii_net_cr']} Cr\\n"
-        f"Check full dashboard: "
-    )
+    max_pain = option.get("max_pain", atm)
+    pain_diff = max_pain - spot
+    pain_dir = "▲ Upward Pull" if pain_diff > 0 else ("▼ Downward Pull" if pain_diff < 0 else "• Pinned to Spot")
+    pain_diff_text = f"{abs(round(pain_diff))} pts {'Above' if pain_diff > 0 else 'Below'} Spot"
+
+    # Net Force Calculation
+    tot_put_chg = option.get("tot_put_chg_lakhs", 0.0)
+    tot_call_chg = option.get("tot_call_chg_lakhs", 0.0)
+    total_abs = max(0.1, abs(tot_put_chg) + abs(tot_call_chg))
+    put_pct = min(90, max(10, int((abs(tot_put_chg) / total_abs) * 100))) if total_abs > 0 else 50
+    call_pct = 100 - put_pct
+    net_force = round(tot_put_chg - tot_call_chg, 1)
+    net_force_tag = "BULLISH WRITING BIAS" if net_force >= 0 else "BEARISH WRITING BIAS"
+    net_force_color = "emerald" if net_force >= 0 else "rose"
+    net_force_text = f"+{net_force}L Puts Added" if net_force >= 0 else f"{abs(net_force)}L Calls Added"
 
     # Dynamic Expiry Badges
     exp_day = option.get('expiry_weekday', 'Tuesday')
     days_left = option.get('days_to_expiry', 0)
     if option.get('is_expiry_today'):
         top_expiry_badge = f'<span class="text-[10px] font-bold px-2.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono animate-pulse">🔥 EXPIRY TODAY ({exp_day.upper()})</span>'
-        sec2_badge = f'<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse">🔥 EXPIRY TODAY ({exp_day.upper()})</span>'
     else:
-        top_expiry_badge = f'<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 font-mono">EXPIRY: {option["expiry_date"]} ({exp_day}, {days_left}d left)</span>'
-        sec2_badge = f'<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">{exp_day.upper()} WEEKLY EXPIRY</span>'
+        top_expiry_badge = f'<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 font-mono">EXPIRY: {option.get("expiry_date", "")} ({exp_day}, {days_left}d left)</span>'
+
+    # Strike Ladder HTML Rows
+    strike_rows_html = ""
+    for row in option.get("strike_ladder", []):
+        s = row["strike"]
+        is_atm = row["is_atm"]
+        is_ceil = (s == max_call_strike)
+        is_floor = (s == max_put_strike)
+        is_pain = (s == max_pain)
+
+        if is_atm:
+            row_style = "bg-amber-950/30 border border-amber-500/40 shadow-inner"
+            badge = " <span class='text-[9px] font-black text-amber-300 bg-amber-900/60 px-1 py-0.2 rounded border border-amber-500/50 ml-1'>ATM</span>"
+        elif is_ceil:
+            row_style = "bg-rose-950/25 border border-rose-500/40"
+            badge = " <span class='text-[9px] font-black text-rose-300 bg-rose-900/60 px-1 py-0.2 rounded border border-rose-500/50 ml-1'>CEIL</span>"
+        elif is_floor:
+            row_style = "bg-emerald-950/25 border border-emerald-500/40"
+            badge = " <span class='text-[9px] font-black text-emerald-300 bg-emerald-900/60 px-1 py-0.2 rounded border border-emerald-500/50 ml-1'>FLOOR</span>"
+        elif is_pain:
+            row_style = "bg-purple-950/20 border border-purple-500/30"
+            badge = " <span class='text-[9px] font-bold text-purple-300 bg-purple-900/60 px-1 py-0.2 rounded border border-purple-500/50 ml-1'>PAIN</span>"
+        else:
+            row_style = "hover:bg-slate-800/40 transition"
+            badge = ""
+
+        c_chg_sign = "+" if row['call_chg_lakhs'] >= 0 else ""
+        p_chg_sign = "+" if row['put_chg_lakhs'] >= 0 else ""
+
+        strike_rows_html += f"""
+        <div class="grid grid-cols-12 items-center gap-2 py-1 px-2 rounded-lg {row_style}">
+          <!-- Call OI Bar & Val -->
+          <div class="col-span-5 flex justify-end items-center gap-2">
+            <span class="text-[10px] text-rose-400/80 font-mono">{c_chg_sign}{row['call_chg_lakhs']}L</span>
+            <span class="text-slate-300 font-bold text-xs font-mono">{row['call_oi_lakhs']}L</span>
+            <div class="w-24 sm:w-36 bg-slate-800/80 h-3 rounded-l overflow-hidden flex justify-end">
+              <div class="bg-rose-500 h-full" style="width: {row['call_bar_pct']}%;"></div>
+            </div>
+          </div>
+          
+          <!-- Strike Price -->
+          <div class="col-span-2 text-center font-bold text-slate-200 bg-slate-950 py-0.5 rounded border border-slate-800 font-mono text-xs">
+            {s}{badge}
+          </div>
+          
+          <!-- Put OI Bar & Val -->
+          <div class="col-span-5 flex items-center gap-2">
+            <div class="w-24 sm:w-36 bg-slate-800/80 h-3 rounded-r overflow-hidden">
+              <div class="bg-emerald-500 h-full" style="width: {row['put_bar_pct']}%;"></div>
+            </div>
+            <span class="text-slate-300 font-bold text-xs font-mono">{row['put_oi_lakhs']}L</span>
+            <span class="text-[10px] text-emerald-400/80 font-mono">{p_chg_sign}{row['put_chg_lakhs']}L</span>
+          </div>
+        </div>
+        """
+
+    # Generate Quick Copy Text for WhatsApp/Telegram
+    copy_text = (
+        f"🎯 NIFTY 50 • ELITE 5 OPTIONS RADAR ({runtime['date']})\\n"
+        f"1. THE BOUNDARY: {exp_low:,} – {exp_high:,} (ATM {atm} Straddle: {straddle} pts / ~{straddle_pct}%)\\n"
+        f"2. CALL FORTRESS: {max_call_strike:,} CE (+{max_call_lakhs}L Added | Active Ceiling)\\n"
+        f"3. PUT FORTRESS: {max_put_strike:,} PE (+{max_put_lakhs}L Added | Active Floor)\\n"
+        f"4. THE SENTIMENT: Total PCR {option['total_pcr']} ({option['pcr_stance']})\\n"
+        f"5. THE MAGNET: Max Pain {max_pain:,} ({pain_diff_text} | {pain_dir})\\n"
+        f"• Net Force: {net_force_text} ({net_force_tag})\\n"
+        f"Check full dashboard: https://djtrades.github.io/marketpulse/"
+    )
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nifty Pre-Market Pulse & Expiry Radar ({runtime['date']})</title>
+  <title>Nifty 50 • Elite 5 Options Morning Radar ({runtime['date']})</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     body {{ font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif; }}
     .font-mono {{ font-family: 'JetBrains Mono', monospace; }}
@@ -122,437 +141,409 @@ def render_html_dashboard(data: Dict[str, Any]) -> str:
     ::-webkit-scrollbar-thumb {{ background: rgba(100, 116, 139, 0.3); border-radius: 4px; }}
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 antialiased min-h-screen p-3 sm:p-5 selection:bg-indigo-500 selection:text-white">
+<body class="bg-slate-950 text-slate-100 antialiased min-h-screen p-3 sm:p-6 selection:bg-indigo-500 selection:text-white">
 
   <div class="max-w-7xl mx-auto space-y-6">
 
-    <!-- ==================== HEADER & TOP TICKER ==================== -->
-    <header class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl backdrop-blur-md">
+    <!-- ==================== HEADER BAR ==================== -->
+    <header class="bg-slate-900/95 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-2xl backdrop-blur-md">
       <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-5">
         <div>
           <div class="flex items-center gap-2.5 flex-wrap">
-            <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
             <h1 class="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2">
-              NIFTY PRE-MARKET PULSE
-              <span class="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-600/30 text-indigo-300 border border-indigo-500/30">08:00 AM IST</span>
+              NIFTY OPTIONS RADAR
+              <span class="text-xs font-bold px-2 py-0.5 rounded bg-indigo-600/30 text-indigo-300 border border-indigo-500/30">ELITE 5 CORE</span>
             </h1>
             {top_expiry_badge}
           </div>
           <p class="text-xs sm:text-sm text-slate-400 mt-1">
-            Global Overnight Snapshot • NSE Option Chain Derivatives Matrix • Tactical Intraday Gameplan
+            Pure Derivatives Microstructure • 5 Non-Negotiable Greeks & OI Signals for 09:15 AM
           </p>
         </div>
 
-        <!-- Meta Strip & Quick Share Button -->
+        <!-- Meta Strip & Share Button -->
         <div class="flex flex-wrap items-center gap-2.5 text-xs">
           <div class="bg-slate-950/70 px-3 py-1.5 rounded-lg border border-slate-800 font-mono text-slate-300">
-            <span class="text-slate-500">Nifty Spot:</span> <span class="text-white font-bold">{option['spot_price']:,}</span>
+            <span class="text-slate-500">Spot:</span> <span class="text-white font-bold">{spot:,}</span>
+          </div>
+          <div class="bg-slate-950/70 px-3 py-1.5 rounded-lg border border-slate-800 font-mono text-slate-300">
+            <span class="text-slate-500">ATM:</span> <span class="text-amber-400 font-bold">{atm:,}</span>
           </div>
           <div class="bg-slate-950/70 px-3 py-1.5 rounded-lg border border-slate-800 font-mono text-slate-300">
             <span class="text-slate-500">Refreshed:</span> <span class="text-emerald-400 font-bold">{runtime['timestamp']} IST</span>
           </div>
           <button onclick="copyBriefing()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-3 py-1.5 rounded-lg transition shadow-md flex items-center gap-1.5 cursor-pointer">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
-            <span id="copyBtnText">Copy Morning Brief</span>
+            <span id="copyBtnText">Copy Options Brief</span>
           </button>
         </div>
       </div>
 
-      <!-- Quick Ticker Strip -->
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-4 pt-1">
-        <!-- Gift Nifty -->
-        <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800/80">
-          <div class="text-[11px] font-semibold text-slate-400 flex items-center justify-between">
-            <span>GIFT NIFTY</span>
-            <span class="text-emerald-400 font-mono text-[10px] font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">LIVE FUTURES</span>
-          </div>
-          <div class="text-base font-bold text-white font-mono mt-0.5">{glob['gift_nifty']['estimated_price']:,}</div>
-          <div class="text-[11px] font-mono text-{glob['gift_nifty']['gap_color']}-400 font-semibold">
-            {glob['gift_nifty']['gap_points']:+0.1f} pts ({glob['gift_nifty']['gap_pct']:+0.2f}%)
-          </div>
-        </div>
-
-        <!-- India VIX -->
-        <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800/80">
-          <div class="text-[11px] font-semibold text-slate-400 flex items-center justify-between">
-            <span>INDIA VIX</span>
-            <span class="text-slate-500 font-mono text-[10px]">VOLATILITY</span>
-          </div>
-          <div class="text-base font-bold text-slate-200 font-mono mt-0.5">{glob['macro']['vix']['price']}</div>
-          <div class="text-[11px] font-mono text-{'emerald' if glob['macro']['vix']['pct_change'] <= 0 else 'rose'}-400">
-            {glob['macro']['vix']['pct_change']:+0.2f}% (Normal)
-          </div>
-        </div>
-
-        <!-- Brent Crude -->
-        <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800/80">
-          <div class="text-[11px] font-semibold text-slate-400 flex items-center justify-between">
-            <span>BRENT CRUDE</span>
-            <span class="text-slate-500 font-mono text-[10px]">COMMODITY</span>
-          </div>
-          <div class="text-base font-bold text-slate-200 font-mono mt-0.5">${glob['macro']['brent']['price']}/bbl</div>
-          <div class="text-[11px] font-mono text-{'emerald' if glob['macro']['brent']['pct_change'] <= 0 else 'rose'}-400">
-            {glob['macro']['brent']['pct_change']:+0.2f}%
-          </div>
-        </div>
-
-        <!-- US 10Y Yield -->
-        <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800/80">
-          <div class="text-[11px] font-semibold text-slate-400 flex items-center justify-between">
-            <span>US 10Y YIELD</span>
-            <span class="text-slate-500 font-mono text-[10px]">BONDS</span>
-          </div>
-          <div class="text-base font-bold text-slate-200 font-mono mt-0.5">{glob['macro']['us10y']['price']}%</div>
-          <div class="text-[11px] font-mono text-{'emerald' if glob['macro']['us10y']['pct_change'] <= 0 else 'rose'}-400">
-            {glob['macro']['us10y']['pct_change']:+0.2f}%
-          </div>
-        </div>
-
-        <!-- Dollar Index DXY -->
-        <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800/80">
-          <div class="text-[11px] font-semibold text-slate-400 flex items-center justify-between">
-            <span>DOLLAR DXY</span>
-            <span class="text-slate-500 font-mono text-[10px]">CURRENCY</span>
-          </div>
-          <div class="text-base font-bold text-slate-200 font-mono mt-0.5">{glob['macro']['dxy']['price']}</div>
-          <div class="text-[11px] font-mono text-{'emerald' if glob['macro']['dxy']['pct_change'] <= 0 else 'rose'}-400">
-            {glob['macro']['dxy']['pct_change']:+0.2f}%
-          </div>
-        </div>
-
-        <!-- USD / INR -->
-        <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800/80">
-          <div class="text-[11px] font-semibold text-slate-400 flex items-center justify-between">
-            <span>USD / INR</span>
-            <span class="text-slate-500 font-mono text-[10px]">FOREX</span>
-          </div>
-          <div class="text-base font-bold text-slate-200 font-mono mt-0.5">₹{glob['macro']['usdinr']['price']}</div>
-          <div class="text-[11px] font-mono text-slate-400">
-            {glob['macro']['usdinr']['pct_change']:+0.2f}%
-          </div>
-        </div>
+      <!-- Quick Guidance Banner -->
+      <div class="mt-4 flex items-center justify-between text-xs text-slate-400 bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60">
+        <span class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
+          <span><strong>The 30-Second Rule:</strong> Review the 5 Core Pillars below to establish Range, Walls, Sentiment, Gravity, and Net Flow.</span>
+        </span>
+        <span class="text-slate-500 font-mono text-[11px] hidden sm:inline">{runtime['date']}</span>
       </div>
     </header>
 
-    <!-- ==================== MAIN POV & TACTICAL GAMEPLAN ==================== -->
-    <section class="bg-gradient-to-br from-slate-900 via-slate-900/95 to-indigo-950/40 border border-indigo-500/30 rounded-2xl p-5 md:p-6 shadow-xl relative overflow-hidden">
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-        <div class="flex items-center gap-3">
-          <span class="p-2.5 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          </span>
-          <div>
-            <h2 class="text-lg md:text-xl font-bold text-white tracking-tight">Today's Morning Point of View (POV) & Tactical Battleplan</h2>
-            <p class="text-xs text-slate-400">Synthesized from overnight cues, FII/DII cash flows, and live weekly open interest writing</p>
+    <!-- ==================== THE ELITE 5 CORE HERO GRID ==================== -->
+    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+
+      <!-- PILLAR 1: ATM STRADDLE (THE BOUNDARY) -->
+      <div class="bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950 border border-indigo-500/40 rounded-2xl p-4 shadow-xl flex flex-col justify-between relative overflow-hidden group hover:border-indigo-400 transition">
+        <div class="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div>
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold uppercase tracking-wider text-indigo-400 bg-indigo-500/15 px-2 py-0.5 rounded border border-indigo-500/30">
+              #1 THE BOUNDARY
+            </span>
+            <span class="text-[10px] font-mono text-slate-400 font-medium">ATM Straddle</span>
+          </div>
+
+          <div class="mt-3">
+            <div class="text-xl sm:text-2xl font-black text-white font-mono tracking-tight">
+              {exp_low:,} – {exp_high:,}
+            </div>
+            <div class="text-xs font-semibold text-indigo-300 mt-1 flex items-center gap-1.5">
+              <span>±{straddle} pts</span>
+              <span class="text-slate-500">•</span>
+              <span>~{straddle_pct}% Implied Move</span>
+            </div>
           </div>
         </div>
 
-        <!-- Stance Badge -->
-        <div class="flex items-center gap-2.5 bg-{pov['stance_color']}-500/15 border border-{pov['stance_color']}-500/30 rounded-xl px-4 py-2">
-          <div class="w-2.5 h-2.5 rounded-full bg-{pov['stance_color']}-400 animate-ping"></div>
-          <div>
-            <div class="text-[10px] uppercase font-bold text-{pov['stance_color']}-400/80 tracking-wider">Market Stance (Confidence {pov['confidence_pct']}%)</div>
-            <div class="text-base font-extrabold text-{pov['stance_color']}-300">{pov['stance']}</div>
+        <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-400 leading-relaxed">
+          <span class="text-slate-300 font-medium">Statistical Sandbox:</span> Market makers price today's range within this band. High statistical edge for option selling outside.
+        </div>
+      </div>
+
+      <!-- PILLAR 2: MAX CALL ΔOI (THE CEILING) -->
+      <div class="bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950 border border-rose-500/40 rounded-2xl p-4 shadow-xl flex flex-col justify-between relative overflow-hidden group hover:border-rose-400 transition">
+        <div class="absolute top-0 right-0 w-24 h-24 bg-rose-500/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div>
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold uppercase tracking-wider text-rose-400 bg-rose-500/15 px-2 py-0.5 rounded border border-rose-500/30">
+              #2 CALL FORTRESS
+            </span>
+            <span class="text-[10px] font-mono text-slate-400 font-medium">Active Ceiling</span>
+          </div>
+
+          <div class="mt-3">
+            <div class="text-xl sm:text-2xl font-black text-rose-400 font-mono tracking-tight">
+              {max_call_strike:,} CE
+            </div>
+            <div class="text-xs font-semibold text-rose-300 mt-1 flex items-center gap-1.5">
+              <span>+{max_call_lakhs}L Added</span>
+              <span class="text-slate-500">•</span>
+              <span class="text-slate-400">Active Supply</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Key Forecast Metrics -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5 my-5">
-        <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800">
-          <div class="text-xs text-slate-400 font-medium">Expected Open Range</div>
-          <div class="text-lg sm:text-xl font-extrabold text-white font-mono mt-1">{pov['expected_open_range']}</div>
-          <div class="text-[11px] text-{glob['gift_nifty']['gap_color']}-400 font-semibold mt-0.5">{glob['gift_nifty']['gap_type']}</div>
-        </div>
-
-        <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800">
-          <div class="text-xs text-slate-400 font-medium">Expected Day Range</div>
-          <div class="text-lg sm:text-xl font-extrabold text-white font-mono mt-1">{pov['expected_day_range']}</div>
-          <div class="text-[11px] text-slate-400 mt-0.5">Implied Straddle: ~{pov['straddle_pts']} pts</div>
-        </div>
-
-        <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800">
-          <div class="text-xs text-slate-400 font-medium">Intraday Pivot Level</div>
-          <div class="text-lg sm:text-xl font-extrabold text-indigo-300 font-mono mt-1">{pov['pivot_level']:,}</div>
-          <div class="text-[11px] text-slate-400 mt-0.5">Equilibrium Center</div>
-        </div>
-
-        <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800">
-          <div class="text-xs text-slate-400 font-medium">Expiry Max Pain</div>
-          <div class="text-lg sm:text-xl font-extrabold text-amber-400 font-mono mt-1">{option['max_pain']:,}</div>
-          <div class="text-[11px] text-slate-400 mt-0.5">Gravitational Expiry Center</div>
+        <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-400 leading-relaxed">
+          <span class="text-slate-300 font-medium">Resistance Wall:</span> Highest fresh Call writing yesterday. Rallies toward this strike face heavy institutional selling.
         </div>
       </div>
 
-      <!-- Tactical If-Then Gameplan -->
+      <!-- PILLAR 3: MAX PUT ΔOI (THE FLOOR) -->
+      <div class="bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950 border border-emerald-500/40 rounded-2xl p-4 shadow-xl flex flex-col justify-between relative overflow-hidden group hover:border-emerald-400 transition">
+        <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div>
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30">
+              #3 PUT FORTRESS
+            </span>
+            <span class="text-[10px] font-mono text-slate-400 font-medium">Active Floor</span>
+          </div>
+
+          <div class="mt-3">
+            <div class="text-xl sm:text-2xl font-black text-emerald-400 font-mono tracking-tight">
+              {max_put_strike:,} PE
+            </div>
+            <div class="text-xs font-semibold text-emerald-300 mt-1 flex items-center gap-1.5">
+              <span>+{max_put_lakhs}L Added</span>
+              <span class="text-slate-500">•</span>
+              <span class="text-slate-400">Active Defense</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-400 leading-relaxed">
+          <span class="text-slate-300 font-medium">Support Wall:</span> Highest fresh Put writing. Bulls defend this strike aggressively; a breakdown triggers sharp long liquidation.
+        </div>
+      </div>
+
+      <!-- PILLAR 4: TOTAL PCR (THE SENTIMENT) -->
+      <div class="bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950 border border-amber-500/40 rounded-2xl p-4 shadow-xl flex flex-col justify-between relative overflow-hidden group hover:border-amber-400 transition">
+        <div class="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div>
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded border border-amber-500/30">
+              #4 THE SENTIMENT
+            </span>
+            <span class="text-[10px] font-mono text-slate-400 font-medium">Total PCR</span>
+          </div>
+
+          <div class="mt-3">
+            <div class="text-xl sm:text-2xl font-black text-{option['pcr_badge_color']}-400 font-mono tracking-tight flex items-baseline gap-2">
+              <span>{option['total_pcr']}</span>
+              <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-{option['pcr_badge_color']}-500/20 text-{option['pcr_badge_color']}-300 uppercase">
+                {'OVERSOLD' if option['total_pcr'] < 0.75 else ('OVERBOUGHT' if option['total_pcr'] > 1.30 else 'NEUTRAL')}
+              </span>
+            </div>
+            <div class="text-xs font-semibold text-slate-300 mt-1">
+              {option['pcr_stance']}
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-400 leading-relaxed">
+          <span class="text-slate-300 font-medium">Contrarian Meter:</span> Indicates market positioning extremes. Puts crowded below 0.70; Calls crowded above 1.30.
+        </div>
+      </div>
+
+      <!-- PILLAR 5: MAX PAIN (THE MAGNET) -->
+      <div class="bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950 border border-purple-500/40 rounded-2xl p-4 shadow-xl flex flex-col justify-between relative overflow-hidden group hover:border-purple-400 transition">
+        <div class="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div>
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold uppercase tracking-wider text-purple-400 bg-purple-500/15 px-2 py-0.5 rounded border border-purple-500/30">
+              #5 THE MAGNET
+            </span>
+            <span class="text-[10px] font-mono text-slate-400 font-medium">Max Pain</span>
+          </div>
+
+          <div class="mt-3">
+            <div class="text-xl sm:text-2xl font-black text-purple-300 font-mono tracking-tight">
+              {max_pain:,}
+            </div>
+            <div class="text-xs font-semibold text-purple-300 mt-1 flex items-center gap-1.5">
+              <span>{pain_diff_text}</span>
+              <span class="text-slate-500">•</span>
+              <span class="text-emerald-400 font-bold">{pain_dir}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-400 leading-relaxed">
+          <span class="text-slate-300 font-medium">Gravitational Drift:</span> Strike where collective option buyers lose maximum money. Gravitational pull intensifies near expiry.
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ==================== SECTION 2: NET INSTITUTIONAL FORCE (ΔOI BALANCE) ==================== -->
+    <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3 mb-4">
+        <div>
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <span>Net Institutional Force: ΔOI Ammunition Meter</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-{net_force_color}-500/15 text-{net_force_color}-300 border border-{net_force_color}-500/30">
+              {net_force_tag}
+            </span>
+          </h2>
+          <p class="text-xs text-slate-400">Total contracts added across all Put strikes vs Call strikes in active weekly cycle</p>
+        </div>
+        <div class="text-xs font-mono bg-slate-950 px-3 py-1 rounded-lg border border-slate-800 text-slate-300">
+          Net Advantage: <span class="text-{net_force_color}-400 font-bold">{net_force_text}</span>
+        </div>
+      </div>
+
+      <!-- Meter Visual -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between text-xs font-mono">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-sm bg-emerald-500"></span>
+            <span class="text-slate-300">Put Writing (Support Added):</span>
+            <span class="text-emerald-400 font-bold">+{tot_put_chg}L ({put_pct}%)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-rose-400 font-bold">+{tot_call_chg}L ({call_pct}%)</span>
+            <span class="text-slate-300">:Call Writing (Resistance Added)</span>
+            <span class="w-3 h-3 rounded-sm bg-rose-500"></span>
+          </div>
+        </div>
+
+        <!-- Split Progress Bar -->
+        <div class="w-full bg-slate-800 h-3.5 rounded-full overflow-hidden flex p-0.5">
+          <div class="bg-emerald-500 h-full rounded-l-full transition-all duration-500" style="width: {put_pct}%;"></div>
+          <div class="bg-rose-500 h-full rounded-r-full transition-all duration-500" style="width: {call_pct}%;"></div>
+        </div>
+
+        <p class="text-[11px] text-slate-400 text-center pt-1">
+          Institutional writers injected <strong>{abs(net_force)}L more {'put' if net_force >= 0 else 'call'} contracts</strong> yesterday. {'Downside moves are backed by institutional writing support.' if net_force >= 0 else 'Upside moves face aggressive overhead writing resistance.'}
+        </p>
+      </div>
+    </section>
+
+    <!-- ==================== SECTION 3: CORRIDOR STRIKE LADDER ==================== -->
+    <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3 mb-4">
+        <div>
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            Active Corridor Open Interest Distribution (± 300 pts)
+          </h2>
+          <p class="text-xs text-slate-400">Total OI (Bar width) & Fresh Daily ΔOI Additions by Strike</p>
+        </div>
+        <div class="flex items-center gap-4 text-xs font-mono">
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-rose-500"></span> Call OI (Ceiling)</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-emerald-500"></span> Put OI (Floor)</span>
+        </div>
+      </div>
+
+      <!-- Strike Ladder Rows -->
+      <div class="space-y-1.5">
+        {strike_rows_html}
+      </div>
+    </section>
+
+    <!-- ==================== SECTION 4: 30-SECOND TACTICAL ACTION MATRIX ==================== -->
+    <section class="bg-gradient-to-br from-slate-900 via-slate-900/95 to-indigo-950/40 border border-indigo-500/30 rounded-2xl p-5 shadow-xl">
+      <div class="border-b border-slate-800 pb-3 mb-4">
+        <h2 class="text-base font-bold text-white flex items-center gap-2">
+          <span>The 30-Second Tactical Action Matrix (If-Then Execution Rules)</span>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300">DISCIPLINE PLAYBOOK</span>
+        </h2>
+        <p class="text-xs text-slate-400">Rules-based execution triggers derived strictly from the Elite 5 options metrics</p>
+      </div>
+
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-        <div class="bg-slate-950/50 border border-slate-800/80 rounded-xl p-3.5">
-          <div class="flex items-center gap-2 font-bold text-amber-300 mb-1.5">
-            <span class="w-1.5 h-3.5 bg-amber-400 rounded-sm"></span>
-            {pov['scenario_1_title']}
+
+        <!-- PLAY 1 -->
+        <div class="bg-slate-950/60 border border-slate-800 p-4 rounded-xl space-y-2">
+          <div class="flex items-center gap-2 font-bold text-indigo-300">
+            <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
+            <span>RULE 1: Straddle Sandbox Play</span>
           </div>
-          <p class="text-slate-300 leading-relaxed text-xs">{pov['scenario_1_desc']}</p>
+          <div class="text-[11px] font-mono text-slate-400">
+            Zone: <strong class="text-white">{exp_low:,} – {exp_high:,}</strong>
+          </div>
+          <p class="text-slate-300 leading-relaxed">
+            If Nifty opens inside this band, statistical edge belongs to non-directional theta decay. Look to sell OTM Iron Condors or Strangles outside the boundary with strict straddle-based stop losses.
+          </p>
         </div>
 
-        <div class="bg-slate-950/50 border border-slate-800/80 rounded-xl p-3.5">
-          <div class="flex items-center gap-2 font-bold text-emerald-300 mb-1.5">
-            <span class="w-1.5 h-3.5 bg-emerald-400 rounded-sm"></span>
-            {pov['scenario_2_title']}
+        <!-- PLAY 2 -->
+        <div class="bg-slate-950/60 border border-slate-800 p-4 rounded-xl space-y-2">
+          <div class="flex items-center gap-2 font-bold text-rose-300">
+            <span class="w-2 h-2 rounded-full bg-rose-400"></span>
+            <span>RULE 2: Ceiling Rejection / Squeeze</span>
           </div>
-          <p class="text-slate-300 leading-relaxed text-xs">{pov['scenario_2_desc']}</p>
+          <div class="text-[11px] font-mono text-slate-400">
+            Level: <strong class="text-rose-400">{max_call_strike:,} CE (+{max_call_lakhs}L)</strong>
+          </div>
+          <p class="text-slate-300 leading-relaxed">
+            If price rallies toward {max_call_strike:,} and stalls, look for Bear Call Spreads. If price holds decisively above {max_call_strike:,} for &gt;30 mins with Call unwinding, expect an aggressive short-covering squeeze.
+          </p>
         </div>
 
-        <div class="bg-slate-950/50 border border-slate-800/80 rounded-xl p-3.5">
-          <div class="flex items-center gap-2 font-bold text-rose-300 mb-1.5">
-            <span class="w-1.5 h-3.5 bg-rose-400 rounded-sm"></span>
-            {pov['scenario_3_title']}
+        <!-- PLAY 3 -->
+        <div class="bg-slate-950/60 border border-slate-800 p-4 rounded-xl space-y-2">
+          <div class="flex items-center gap-2 font-bold text-emerald-300">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span>RULE 3: Floor Defense / Invalidation</span>
           </div>
-          <p class="text-slate-300 leading-relaxed text-xs">{pov['scenario_3_desc']}</p>
+          <div class="text-[11px] font-mono text-slate-400">
+            Level: <strong class="text-emerald-400">{max_put_strike:,} PE (+{max_put_lakhs}L)</strong>
+          </div>
+          <p class="text-slate-300 leading-relaxed">
+            Dip-buying edge sits near {max_put_strike:,} with Put Credit Spreads. If Nifty closes a 15-minute candle below {max_put_strike:,}, immediately invalidate all bullish bias; expect an accelerated long liquidation cascade.
+          </p>
         </div>
+
       </div>
     </section>
 
-    <!-- ==================== NSE WEEKLY OPTION CHAIN ==================== -->
-    <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 md:p-6 shadow-xl">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
-        <div>
-          <div class="flex items-center gap-2">
-            <h2 class="text-lg md:text-xl font-bold text-white">NSE Nifty Weekly Expiry Option Chain Analysis</h2>
-            {sec2_badge}
-          </div>
-          <p class="text-xs text-slate-400 mt-0.5">Parsed from official NSE live book for active contract: {option['expiry_date']}</p>
+    <!-- ==================== SECTION 5: COMPACT MACRO CONTEXT DRAWER ==================== -->
+    <details class="group bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden transition">
+      <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-800/40 select-none">
+        <div class="flex items-center gap-2 text-xs font-bold text-slate-300">
+          <svg class="w-4 h-4 text-slate-400 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          <span>Macro & Global Backdrop (Gift Nifty, VIX, Crude, FII/DII Flows)</span>
         </div>
-        <div class="flex items-center gap-2">
-          <span class="text-xs text-slate-400">ATM Strike:</span>
-          <span class="font-mono font-bold text-white bg-slate-800 px-2.5 py-1 rounded-md border border-slate-700">{option['atm_strike']}</span>
+        <span class="text-[10px] text-slate-500 font-mono">Click to Expand / Collapse</span>
+      </summary>
+
+      <div class="p-4 pt-0 border-t border-slate-800/60 mt-3 space-y-4">
+        <!-- Quick Ticker Strip -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+            <div class="text-[10px] text-slate-400 font-semibold flex justify-between">
+              <span>GIFT NIFTY</span>
+              <span class="text-emerald-400 font-mono text-[9px] font-bold">LIVE FUTURES</span>
+            </div>
+            <div class="text-sm font-bold text-white font-mono mt-0.5">{glob['gift_nifty']['estimated_price']:,}</div>
+            <div class="text-[10px] font-mono text-{glob['gift_nifty']['gap_color']}-400 font-semibold">
+              {glob['gift_nifty']['gap_points']:+0.1f} pts ({glob['gift_nifty']['gap_pct']:+0.2f}%)
+            </div>
+          </div>
+
+          <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+            <div class="text-[10px] text-slate-400 font-semibold">INDIA VIX</div>
+            <div class="text-sm font-bold text-slate-200 font-mono mt-0.5">{glob['macro']['vix']['price']}</div>
+            <div class="text-[10px] font-mono text-slate-400">{glob['macro']['vix']['pct_change']:+0.2f}%</div>
+          </div>
+
+          <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+            <div class="text-[10px] text-slate-400 font-semibold">BRENT CRUDE</div>
+            <div class="text-sm font-bold text-slate-200 font-mono mt-0.5">${glob['macro']['brent']['price']}/bbl</div>
+            <div class="text-[10px] font-mono text-slate-400">{glob['macro']['brent']['pct_change']:+0.2f}%</div>
+          </div>
+
+          <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+            <div class="text-[10px] text-slate-400 font-semibold">US 10Y YIELD</div>
+            <div class="text-sm font-bold text-slate-200 font-mono mt-0.5">{glob['macro']['us10y']['price']}%</div>
+            <div class="text-[10px] font-mono text-slate-400">{glob['macro']['us10y']['pct_change']:+0.2f}%</div>
+          </div>
+
+          <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+            <div class="text-[10px] text-slate-400 font-semibold">DOLLAR DXY</div>
+            <div class="text-sm font-bold text-slate-200 font-mono mt-0.5">{glob['macro']['dxy']['price']}</div>
+            <div class="text-[10px] font-mono text-slate-400">{glob['macro']['dxy']['pct_change']:+0.2f}%</div>
+          </div>
+
+          <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+            <div class="text-[10px] text-slate-400 font-semibold">USD / INR</div>
+            <div class="text-sm font-bold text-slate-200 font-mono mt-0.5">₹{glob['macro']['usdinr']['price']}</div>
+            <div class="text-[10px] font-mono text-slate-400">{glob['macro']['usdinr']['pct_change']:+0.2f}%</div>
+          </div>
+        </div>
+
+        <!-- Institutional Flows Strip -->
+        <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800 flex flex-wrap items-center justify-between text-xs gap-3">
+          <div class="flex items-center gap-4">
+            <span class="text-slate-400">Institutional Cash Flow:</span>
+            <span>FII: <strong class="text-rose-400 font-mono">{inst.get('fii_net_cr', 0)} Cr</strong></span>
+            <span>DII: <strong class="text-emerald-400 font-mono">+{inst.get('dii_net_cr', 0)} Cr</strong></span>
+            <span>Net: <strong class="text-emerald-400 font-mono">{inst.get('combined_net_cr', 0):+0.1f} Cr</strong></span>
+          </div>
+          <div class="text-slate-400 font-mono">
+            FII Long Futures: <strong class="text-white">{inst.get('fii_long_pct', 50)}%</strong>
+          </div>
         </div>
       </div>
+    </details>
 
-      <!-- Derivatives Stats Strip (4 Core Metrics) -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5 my-5">
-        <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800">
-          <div class="text-xs text-slate-400 font-medium">Total PCR</div>
-          <div class="text-xl font-bold text-{option['pcr_badge_color']}-400 font-mono mt-0.5">{option['total_pcr']}</div>
-          <div class="text-[11px] text-slate-400">{option['pcr_stance']}</div>
-        </div>
-
-        <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800">
-          <div class="text-xs text-slate-400 font-medium">Max Pain Strike</div>
-          <div class="text-xl font-bold text-amber-400 font-mono mt-0.5">{option['max_pain']:,}</div>
-          <div class="text-[11px] text-slate-400">Expiry Gravity Pin Center</div>
-        </div>
-
-        <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800">
-          <div class="text-xs text-slate-400 font-medium">Total Put OI Change</div>
-          <div class="text-xl font-bold text-emerald-400 font-mono mt-0.5">{'+' if option['tot_put_chg_lakhs'] >= 0 else ''}{option['tot_put_chg_lakhs']}L</div>
-          <div class="text-[11px] text-slate-400">{'Put Writing (Support Addition)' if option['tot_put_chg_lakhs'] >= 0 else 'Put Unwinding (Liquidation)'}</div>
-        </div>
-
-        <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800">
-          <div class="text-xs text-slate-400 font-medium">Total Call OI Change</div>
-          <div class="text-xl font-bold text-rose-400 font-mono mt-0.5">{'+' if option['tot_call_chg_lakhs'] >= 0 else ''}{option['tot_call_chg_lakhs']}L</div>
-          <div class="text-[11px] text-slate-400">{'Call Writing (Resistance Addition)' if option['tot_call_chg_lakhs'] >= 0 else 'Call Unwinding (Short Covering)'}</div>
-        </div>
-      </div>
-
-      <!-- Strike Ladder Chart -->
-      <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-800 mt-4">
-        <div class="flex items-center justify-between text-xs mb-3">
-          <span class="font-bold text-slate-300 uppercase tracking-wider text-[11px]">Open Interest Distribution by Strike (Call vs Put Walls)</span>
-          <div class="flex items-center gap-4 text-[11px]">
-            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-rose-500"></span> Call OI (Resistance)</span>
-            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-emerald-500"></span> Put OI (Support)</span>
-          </div>
-        </div>
-
-        <div class="space-y-1">
-          {strike_rows_html}
-        </div>
-
-        <div class="mt-4 pt-3 border-t border-slate-800 text-xs text-slate-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <span>💡 <strong>Derivatives Reading:</strong> Total Put OI change is {'+' if option['tot_put_chg_lakhs'] >= 0 else ''}{option['tot_put_chg_lakhs']}L vs Total Call OI change of {'+' if option['tot_call_chg_lakhs'] >= 0 else ''}{option['tot_call_chg_lakhs']}L across the active contract. Expiry Max Pain centered at {option['max_pain']:,}.</span>
-          <span class="font-mono text-indigo-400 text-[11px]">Source: NSE India Live Derivatives Book</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- ==================== TWO COLUMNS: GLOBAL MARKETS & INSTITUTIONAL ==================== -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-      <!-- GLOBAL MARKETS OVERNIGHT & MORNING CUES -->
-      <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
-          <div class="flex items-center gap-2">
-            <span class="text-lg">🌐</span>
-            <h2 class="text-base font-bold text-white">Global Markets Overnight & Asian Cues</h2>
-          </div>
-          <span class="text-xs text-slate-400 font-mono">08:00 AM IST</span>
-        </div>
-
-        <div class="space-y-3">
-          <!-- US Wall St -->
-          <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
-            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
-              <span>🇺🇸 US Wall Street (Overnight Close)</span>
-              <span class="text-emerald-400 text-[10px]">{glob['us_markets']['summary']}</span>
-            </div>
-            <div class="grid grid-cols-3 gap-2 text-center font-mono">
-              <div class="bg-slate-900 p-2 rounded-lg border border-slate-800">
-                <div class="text-[11px] text-slate-400">Dow Jones</div>
-                <div class="text-xs font-bold text-white mt-0.5">{glob['us_markets']['dow']['price']:,}</div>
-                <div class="text-[10px] text-{'emerald' if glob['us_markets']['dow']['is_positive'] else 'rose'}-400">{glob['us_markets']['dow']['pct_change']:+0.2f}%</div>
-              </div>
-              <div class="bg-slate-900 p-2 rounded-lg border border-slate-800">
-                <div class="text-[11px] text-slate-400">S&P 500</div>
-                <div class="text-xs font-bold text-white mt-0.5">{glob['us_markets']['sp500']['price']:,}</div>
-                <div class="text-[10px] text-{'emerald' if glob['us_markets']['sp500']['is_positive'] else 'rose'}-400">{glob['us_markets']['sp500']['pct_change']:+0.2f}%</div>
-              </div>
-              <div class="bg-slate-900 p-2 rounded-lg border border-slate-800">
-                <div class="text-[11px] text-slate-400">Nasdaq 100</div>
-                <div class="text-xs font-bold text-white mt-0.5">{glob['us_markets']['nasdaq']['price']:,}</div>
-                <div class="text-[10px] text-{'emerald' if glob['us_markets']['nasdaq']['is_positive'] else 'rose'}-400">{glob['us_markets']['nasdaq']['pct_change']:+0.2f}%</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Asian Markets -->
-          <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
-            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
-              <span>🌏 Asian Markets (Live Morning Trade)</span>
-              <span class="text-emerald-400 text-[10px]">{glob['asian_markets']['summary']}</span>
-            </div>
-            <div class="grid grid-cols-3 gap-2 text-center font-mono">
-              <div class="bg-slate-900 p-2 rounded-lg border border-slate-800">
-                <div class="text-[11px] text-slate-400">Nikkei 225</div>
-                <div class="text-xs font-bold text-white mt-0.5">{glob['asian_markets']['nikkei']['price']:,}</div>
-                <div class="text-[10px] text-{'emerald' if glob['asian_markets']['nikkei']['is_positive'] else 'rose'}-400">{glob['asian_markets']['nikkei']['pct_change']:+0.2f}%</div>
-              </div>
-              <div class="bg-slate-900 p-2 rounded-lg border border-slate-800">
-                <div class="text-[11px] text-slate-400">Hang Seng</div>
-                <div class="text-xs font-bold text-white mt-0.5">{glob['asian_markets']['hangseng']['price']:,}</div>
-                <div class="text-[10px] text-{'emerald' if glob['asian_markets']['hangseng']['is_positive'] else 'rose'}-400">{glob['asian_markets']['hangseng']['pct_change']:+0.2f}%</div>
-              </div>
-              <div class="bg-slate-900 p-2 rounded-lg border border-slate-800">
-                <div class="text-[11px] text-slate-400">Shanghai</div>
-                <div class="text-xs font-bold text-white mt-0.5">{glob['asian_markets']['shanghai']['price']:,}</div>
-                <div class="text-[10px] text-{'emerald' if glob['asian_markets']['shanghai']['is_positive'] else 'rose'}-400">{glob['asian_markets']['shanghai']['pct_change']:+0.2f}%</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Europe -->
-          <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
-            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-              <span>🇪🇺 European Markets (Previous Session)</span>
-            </div>
-            <div class="grid grid-cols-2 gap-2 text-center font-mono">
-              <div class="bg-slate-900 p-2 rounded-lg border border-slate-800 flex justify-between items-center px-3">
-                <span class="text-xs text-slate-300">Germany DAX</span>
-                <span class="text-xs font-bold text-{'emerald' if glob['european_markets']['dax']['is_positive'] else 'rose'}-400">
-                  {glob['european_markets']['dax']['pct_change']:+0.2f}%
-                </span>
-              </div>
-              <div class="bg-slate-900 p-2 rounded-lg border border-slate-800 flex justify-between items-center px-3">
-                <span class="text-xs text-slate-300">UK FTSE 100</span>
-                <span class="text-xs font-bold text-{'emerald' if glob['european_markets']['ftse']['is_positive'] else 'rose'}-400">
-                  {glob['european_markets']['ftse']['pct_change']:+0.2f}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- INSTITUTIONAL FLOWS & SECTOR RADAR -->
-      <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
-            <div class="flex items-center gap-2">
-              <span class="text-lg">🏛️</span>
-              <h2 class="text-base font-bold text-white">Institutional Flows (FII / DII) & Sectors</h2>
-            </div>
-            <span class="text-xs text-slate-400 font-mono">Session: {inst['date']}</span>
-          </div>
-
-          <!-- FII / DII Numbers -->
-          <div class="grid grid-cols-3 gap-3 mb-4">
-            <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-center">
-              <div class="text-[11px] text-slate-400">FII Cash Net</div>
-              <div class="text-sm sm:text-base font-bold text-{'emerald' if inst['fii_net_cr'] >= 0 else 'rose'}-400 font-mono mt-0.5">
-                {inst['fii_net_cr']:+0.1f} Cr
-              </div>
-              <div class="text-[10px] text-slate-400">{"Net Buyers" if inst['fii_net_cr'] >= 0 else "Net Sellers"}</div>
-            </div>
-
-            <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-center">
-              <div class="text-[11px] text-slate-400">DII Cash Net</div>
-              <div class="text-sm sm:text-base font-bold text-{'emerald' if inst['dii_net_cr'] >= 0 else 'rose'}-400 font-mono mt-0.5">
-                {inst['dii_net_cr']:+0.1f} Cr
-              </div>
-              <div class="text-[10px] text-slate-400">Domestic Absorption</div>
-            </div>
-
-            <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-center">
-              <div class="text-[11px] text-slate-400">Combined Net</div>
-              <div class="text-sm sm:text-base font-bold text-{'emerald' if inst['combined_net_cr'] >= 0 else 'rose'}-400 font-mono mt-0.5">
-                {inst['combined_net_cr']:+0.1f} Cr
-              </div>
-              <div class="text-[10px] text-slate-400">{"Positive Inflow" if inst['combined_net_cr'] >= 0 else "Net Outflow"}</div>
-            </div>
-          </div>
-
-          <!-- FII Futures Ratio -->
-          <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 mb-4">
-            <div class="flex justify-between items-center text-xs mb-1.5">
-              <span class="text-slate-300 font-semibold">FII Index Futures Exposure:</span>
-              <span class="font-mono font-bold text-slate-200">{inst['fii_long_pct']}% Long vs {inst['fii_short_pct']}% Short</span>
-            </div>
-            <div class="w-full bg-rose-500/80 h-3 rounded-full overflow-hidden flex">
-              <div class="bg-emerald-500 h-full" style="width: {inst['fii_long_pct']}%;"></div>
-            </div>
-          </div>
-
-          <!-- Sector Watchlist Grid -->
-          <div class="grid grid-cols-2 gap-2 text-xs">
-            {sector_cards_html}
-          </div>
-        </div>
-      </section>
-    </div>
-
-    <!-- ==================== MARKET MOVING NEWS WITH IMPACT ==================== -->
-    <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 md:p-6 shadow-xl">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
-        <div class="flex items-center gap-2">
-          <span class="text-lg">📰</span>
-          <h2 class="text-lg font-bold text-white">Market-Moving News Influencing Today's Session</h2>
-        </div>
-        <span class="text-xs text-slate-400">Live Indian & Global financial feeds</span>
-      </div>
-
-      <div class="space-y-3">
-        {news_cards_html}
-      </div>
-    </section>
-
-    <!-- ==================== FOOTER ==================== -->
-    <footer class="border-t border-slate-800/80 pt-5 pb-8 text-center text-xs text-slate-500 space-y-1">
-      <p>Nifty Pre-Market Pulse • Auto-generated for 08:00 AM IST Indian Market Preparation</p>
-      <p class="text-[11px] text-slate-600">Educational and informational reference only. Not SEBI registered investment advice.</p>
+    <!-- FOOTER -->
+    <footer class="text-center text-xs text-slate-500 py-3">
+      Nifty 50 Options Morning Radar • Automated Daily Runner at 07:50 AM IST • NSE Live Derivatives Engine
     </footer>
 
   </div>
 
+  <!-- SCRIPT FOR BRIEFING COPY -->
   <script>
     function copyBriefing() {{
-      const text = "{copy_text}" + window.location.href;
+      const text = `{copy_text}`;
       navigator.clipboard.writeText(text).then(() => {{
         const btn = document.getElementById('copyBtnText');
-        const orig = btn.innerText;
-        btn.innerText = 'Copied to Clipboard! ✓';
-        setTimeout(() => {{ btn.innerText = orig; }}, 2500);
-      }}).catch(err => {{
-        alert('Could not auto-copy. Please copy from screen.');
+        const original = btn.innerText;
+        btn.innerText = 'Copied to Clipboard!';
+        setTimeout(() => btn.innerText = original, 2000);
       }});
     }}
   </script>
